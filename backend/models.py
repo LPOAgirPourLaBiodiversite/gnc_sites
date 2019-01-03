@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 from geoalchemy2 import Geometry
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 from gncitizen.core.commons.models import (
     ProgramsModel, TimestampMixinModel, MediaModel)
 from gncitizen.core.users.models import ObserverMixinModel
 from gncitizen.utils.utilssqlalchemy import serializable, geoserializable
+from gncitizen.core.observations.models import ObservationModel
 from server import db
 
 
@@ -24,6 +25,7 @@ class TypeSiteModel(TimestampMixinModel, db.Model):
     id_typesite = db.Column(db.Integer, primary_key=True, unique=True)
     category = db.Column(db.String(200))
     type = db.Column(db.String(200))
+    json_schema_form = db.Column(JSONB, nullable=True)
 
 
 @serializable
@@ -63,3 +65,14 @@ class VisitAttributeModel(TimestampMixinModel, db.Model):
         VisitModel.id_visit, ondelete='CASCADE'))
     key = db.Column(db.String(200), nullable=False)
     value = db.Column(db.Text)
+
+
+class ObservationsOnSite(TimestampMixinModel, db.Model):
+    """Table de correspondance des observations avec les sites"""
+    __tablename__ = 'cor_sites_obstax'
+    __table_args__ = {'schema': 'gnc_sites'}
+    id_cor_site_obstax = db.Column(db.Integer, primary_key=True, unique=True)
+    id_site = db.Column(db.Integer, db.ForeignKey(
+        SiteModel.id_site, ondelete='SET NULL'), nullable=False)
+    id_obstax = db.Column(db.Integer, db.ForeignKey(
+        ObservationModel.id_observation, ondelete='SET NULL'), nullable=False)
