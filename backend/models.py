@@ -56,18 +56,7 @@ class VisitModel(TimestampMixinModel, ObserverMixinModel, db.Model):
         MediaModel.id_media, ondelete='SET NULL'))
 
 
-class VisitAttributeModel(TimestampMixinModel, db.Model):
-    """Table des sessions de suivis des sites"""
-    __tablename__ = 't_visit_attributes'
-    __table_args__ = {'schema': 'gnc_sites'}
-    id_attribute = db.Column(db.Integer, primary_key=True, unique=True)
-    id_visit = db.Column(db.Integer, db.ForeignKey(
-        VisitModel.id_visit, ondelete='CASCADE'))
-    key = db.Column(db.String(200), nullable=False)
-    value = db.Column(db.Text)
-
-
-class ObservationsOnSite(TimestampMixinModel, db.Model):
+class ObservationsOnSiteModel(TimestampMixinModel, db.Model):
     """Table de correspondance des observations avec les sites"""
     __tablename__ = 'cor_sites_obstax'
     __table_args__ = {'schema': 'gnc_sites'}
@@ -76,3 +65,54 @@ class ObservationsOnSite(TimestampMixinModel, db.Model):
         SiteModel.id_site, ondelete='SET NULL'), nullable=False)
     id_obstax = db.Column(db.Integer, db.ForeignKey(
         ObservationModel.id_observation, ondelete='SET NULL'), nullable=False)
+
+
+@serializable
+class BibAttributeCategoryModel(db.Model):
+    """Catégories d'attributs (pour la structuration des formulaires"""
+    __tablename__ = 'bib_themes'
+    __table_args__ = {'schema': 'gnc_sites'}
+    id_attr_cat = db.Column(db.Integer, primary_key=True)
+    id_type = db.Column(db.Integer, db.ForeignKey(
+        TypeSiteModel.id_typesite), nullable=False)
+    name = db.Column(db.Unicode)
+    desc = db.Column(db.Unicode)
+    order = db.Column(db.Integer)
+    type = db.relationship("TypeSiteModel", lazy='select')
+
+
+@serializable
+class BibAttributsModel(db.Model):
+    """Table descriptive des attributs pour une création automatique des formulaires"""
+    __tablename__ = 'bib_attributs'
+    __table_args__ = {'schema': 'gnc_sites'}
+    id_attribut = db.Column(db.Integer, primary_key=True)
+    nom_attribut = db.Column(db.Unicode)
+    label_attribut = db.Column(db.Unicode)
+    liste_valeur_attribut = db.Column(db.Text)
+    obligatoire = db.Column(db.BOOLEAN)
+    desc_attribut = db.Column(db.Text)
+    type_attribut = db.Column(db.Unicode)
+    type_widget = db.Column(db.Unicode)
+    regne = db.Column(db.Unicode)
+    group2_inpn = db.Column(db.Unicode)
+    id_attr_cat = db.Column(
+        db.Integer,
+        db.ForeignKey(BibAttributeCategoryModel.id_attr_cat),
+        nullable=False,
+        primary_key=False
+    )
+    ordre = db.Column(db.Integer)
+    attr_cat = db.relationship("BibAttributeCategoryModel", lazy='select')
+
+
+@serializable
+class CorAttributeVisite(TimestampMixinModel, db.Model):
+    """Table des attributs descriptifs des visites de sites"""
+    __tablename__ = 'cor_attr_visit'
+    __table_args__ = {'schema': 'gnc_sites'}
+    id_attr_visit = db.Column(db.Integer, primary_key=True)
+    attr_value = db.Column(db.Text, nullable=False)
+    id_visit = db.Column(db.Integer, db.ForeignKey(
+        VisitModel.id_visit), nullable=False)
+    visit = db.relationship("VisitModel", lazy='select')
