@@ -1,5 +1,5 @@
-from flask import (Blueprint, request, current_app)
-from .models import (TypeSiteModel, SiteModel, VisitModel, VisitAttributeModel)
+from flask import Blueprint, request, current_app
+from .models import SiteTypeModel, SiteModel, VisitModel
 from gncitizen.core.users.models import UserModel
 import uuid
 import datetime
@@ -13,12 +13,35 @@ from gncitizen.utils.env import MEDIA_DIR, allowed_file
 from gncitizen.utils.errors import GeonatureApiError
 from gncitizen.utils.utilssqlalchemy import get_geojson_feature, json_resp
 from server import db
-from flask_jwt_extended import jwt_optional, jwt_required
+from flask_jwt_extended import jwt_optional
 
-blueprint = Blueprint('sites_url', __name__)
+blueprint = Blueprint("sites_url", __name__)
 
 
-@blueprint.route('/<int:pk>', methods=['GET'])
+@blueprint.route("/types", methods=["GET"])
+@json_resp
+def get_types():
+    """Get all sites types
+        ---
+        tags:
+          - Sites (External module)
+        responses:
+          200:
+            description: A list of all site types
+    """
+    try:
+        modules = SiteTypeModel.query.all()
+        count = len(modules)
+        datas = []
+        for m in modules:
+            d = m.as_dict()
+            datas.append(d)
+        return {"count": count, "datas": datas}, 200
+    except Exception as e:
+        return {"error_message": str(e)}, 400
+
+
+@blueprint.route("/<int:pk>", methods=["GET"])
 @json_resp
 def get_site(pk):
     """Get a site by id
@@ -48,15 +71,15 @@ def get_site(pk):
         features = []
         feature = get_geojson_feature(result.geom)
         for k in result_dict:
-            if k not in ('id_creator', 'geom'):
-                feature['properties'][k] = result_dict[k]
+            if k not in ("id_creator", "geom"):
+                feature["properties"][k] = result_dict[k]
         features.append(feature)
-        return {'features': features}, 200
+        return {"features": features}, 200
     except Exception as e:
-        return {'error_message': str(e)}, 400
+        return {"error_message": str(e)}, 400
 
 
-@blueprint.route('/', methods=['GET'])
+@blueprint.route("/", methods=["GET"])
 @json_resp
 def get_sites():
     """Get all sites
@@ -82,15 +105,15 @@ def get_sites():
             feature = get_geojson_feature(event.geom)
             event_dict = event.as_dict(True)
             for k in event_dict:
-                if k not in ('id_role', 'geom'):
-                    feature['properties'][k] = event_dict[k]
+                if k not in ("id_role", "geom"):
+                    feature["properties"][k] = event_dict[k]
             features.append(feature)
         return FeatureCollection(features)
     except Exception as e:
-        return {'error_message': str(e)}, 400
+        return {"error_message": str(e)}, 400
 
 
-@blueprint.route('/programs/<int:id>', methods=['GET'])
+@blueprint.route("/programs/<int:id>", methods=["GET"])
 @json_resp
 def get_program_sites(id):
     """Get all sites
@@ -116,15 +139,15 @@ def get_program_sites(id):
             feature = get_geojson_feature(event.geom)
             event_dict = event.as_dict(True)
             for k in event_dict:
-                if k not in ('id_role', 'geom'):
-                    feature['properties'][k] = event_dict[k]
+                if k not in ("id_role", "geom"):
+                    feature["properties"][k] = event_dict[k]
             features.append(feature)
         return FeatureCollection(features)
     except Exception as e:
-        return {'error_message': str(e)}, 400
+        return {"error_message": str(e)}, 400
 
 
-@blueprint.route('/', methods=['POST'])
+@blueprint.route("/", methods=["POST"])
 @json_resp
 @jwt_optional
 def post_site():
@@ -174,22 +197,24 @@ def post_site():
         for field in request_datas:
             if hasattr(SiteModel, field):
                 datas2db[field] = request_datas[field]
-        current_app.logger.debug('datas2db: %s', datas2db)
+        current_app.logger.debug("datas2db: %s", datas2db)
         try:
             if request.files:
-                current_app.logger.debug('request.files: %s', request.files)
-                file = request.files.get('photo', None)
-                current_app.logger.debug('file: %s', file)
+                current_app.logger.debug("request.files: %s", request.files)
+                file = request.files.get("photo", None)
+                current_app.logger.debug("file: %s", file)
                 if file and allowed_file(file):
-                    ext = file.rsplit('.', 1).lower()
-                    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')  # noqa: E501
-                    filename = 'site_'+'_'+timestamp+ext
-                    path = MEDIA_DIR+'/'+filename
+                    ext = file.rsplit(".", 1).lower()
+                    timestamp = datetime.datetime.now().strftime(
+                        "%Y%m%d_%H%M%S"
+                    )  # noqa: E501
+                    filename = "site_" + "_" + timestamp + ext
+                    path = MEDIA_DIR + "/" + filename
                     file.save(path)
-                    current_app.logger.debug('path: %s', path)
-                    datas2db['photo'] = filename
+                    current_app.logger.debug("path: %s", path)
+                    datas2db["photo"] = filename
         except Exception as e:
-            current_app.logger.debug('file ', e)
+            current_app.logger.debug("file ", e)
             raise GeonatureApiError(e)
 
         else:
@@ -202,7 +227,7 @@ def post_site():
             raise GeonatureApiError(e)
 
         try:
-            shape = asShape(request_datas['geometry'])
+            shape = asShape(request_datas["geometry"])
             newsite.geom = from_shape(Point(shape), srid=4326)
         except Exception as e:
             current_app.logger.debug(e)
@@ -215,9 +240,8 @@ def post_site():
             newsite.obs_txt = role.username
             newsite.email = role.email
         else:
-            if (newsite.obs_txt is None
-                    or len(newsite.obs_txt) == 0):
-                newsite.obs_txt = 'Anonyme'
+            if newsite.obs_txt is None or len(newsite.obs_txt) == 0:
+                newsite.obs_txt = "Anonyme"
 
         newsite.uuid_sinp = uuid.uuid4()
 
@@ -229,13 +253,11 @@ def post_site():
         features = []
         feature = get_geojson_feature(result.geom)
         for k in result_dict:
-            if k not in ('id_role', 'geom'):
-                feature['properties'][k] = result_dict[k]
+            if k not in ("id_role", "geom"):
+                feature["properties"][k] = result_dict[k]
         features.append(feature)
-        return {
-            'message': 'New site created.',
-            'features': features,
-        }, 200
+        return {"message": "New site created.", "features": features}, 200
     except Exception as e:
-        current_app.logger.warning('Error: %s', str(e))
-        return {'error_message': str(e)}, 400
+        current_app.logger.warning("Error: %s", str(e))
+        return {"error_message": str(e)}, 400
+
