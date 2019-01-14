@@ -90,7 +90,7 @@ def get_sites():
       FeatureCollection:
         properties:
           type: dict
-          description: event properties
+          description: site properties
         geometry:
           type: geojson
           description: GeoJson geometry
@@ -99,16 +99,19 @@ def get_sites():
         description: List of all sites
     """
     try:
-        events = SiteModel.query.all()
+        sites = SiteModel.query.all()
+        count = len(sites)
         features = []
-        for event in events:
-            feature = get_geojson_feature(event.geom)
-            event_dict = event.as_dict(True)
-            for k in event_dict:
+        for site in sites:
+            feature = get_geojson_feature(site.geom)
+            site_dict = site.as_dict(True)
+            for k in site_dict:
                 if k not in ("id_role", "geom"):
-                    feature["properties"][k] = event_dict[k]
+                    feature["properties"][k] = site_dict[k]
             features.append(feature)
-        return FeatureCollection(features)
+        datas = FeatureCollection(features)
+        datas["count"] = count
+        return datas
     except Exception as e:
         return {"error_message": str(e)}, 400
 
@@ -124,7 +127,7 @@ def get_program_sites(id):
       FeatureCollection:
         properties:
           type: dict
-          description: event properties
+          description: site properties
         geometry:
           type: geojson
           description: GeoJson geometry
@@ -133,16 +136,19 @@ def get_program_sites(id):
         description: List of all sites
     """
     try:
-        events = SiteModel.query.filter_by(id_program=id)
+        sites = SiteModel.query.filter_by(id_program=id)
+        count = len(sites.all())
         features = []
-        for event in events:
-            feature = get_geojson_feature(event.geom)
-            event_dict = event.as_dict(True)
-            for k in event_dict:
+        for site in sites:
+            feature = get_geojson_feature(site.geom)
+            site_dict = site.as_dict(True)
+            for k in site_dict:
                 if k not in ("id_role", "geom"):
-                    feature["properties"][k] = event_dict[k]
+                    feature["properties"][k] = site_dict[k]
             features.append(feature)
-        return FeatureCollection(features)
+        datas = FeatureCollection(features)
+        datas["count"] = count
+        return datas
     except Exception as e:
         return {"error_message": str(e)}, 400
 
