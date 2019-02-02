@@ -9,7 +9,8 @@ from geoalchemy2.shape import from_shape
 from shapely.geometry import Point
 from shapely.geometry import asShape
 from gncitizen.utils.utilsjwt import get_id_role_if_exists
-from gncitizen.utils.env import MEDIA_DIR, allowed_file
+from gncitizen.utils.env import MEDIA_DIR
+from gncitizen.utils.media import allowed_file
 from gncitizen.utils.errors import GeonatureApiError
 from gncitizen.utils.utilssqlalchemy import get_geojson_feature, json_resp
 from server import db
